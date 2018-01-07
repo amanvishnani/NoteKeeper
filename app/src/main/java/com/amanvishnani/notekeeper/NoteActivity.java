@@ -21,6 +21,8 @@ public class NoteActivity extends AppCompatActivity {
     private Spinner spinnerCourses;
     private EditText textNoteTitle;
     private EditText textNoteText;
+    private int notePosition;
+    private boolean isCanceling;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +53,7 @@ public class NoteActivity extends AppCompatActivity {
         int CourseIndex = courses.indexOf(noteInfo.getCourse());
         spinnerCourses.setSelection(CourseIndex);
         textNoteText.setText(noteInfo.getText());
-        textNoteTitle.setText(noteInfo.getText());
+        textNoteTitle.setText(noteInfo.getTitle());
     }
 
     private void readDisplayStateValues() {
@@ -60,7 +62,18 @@ public class NoteActivity extends AppCompatActivity {
         isNewNote = position == POSITION_NOT_SET;
         if(!isNewNote) {
             noteInfo = DataManager.getInstance().getNotes().get(position);
+        } else {
+            createNewNote();
         }
+    }
+
+    private void createNewNote() {
+        DataManager dm = DataManager.getInstance();
+        notePosition = dm.createNewNote();
+        noteInfo = dm.getNotes().get(notePosition);
+        noteInfo.setText("");
+        noteInfo.setTitle("");
+        noteInfo.setCourse(dm.getCourses().get(0));
     }
 
     @Override
@@ -81,9 +94,30 @@ public class NoteActivity extends AppCompatActivity {
         if (id == R.id.action_send_mail) {
             sendEmail();
             return true;
+        } else if(id == R.id.action_cancel) {
+            isCanceling = true;
+            finish();
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (isCanceling) {
+            if (isNewNote) {
+                DataManager.getInstance().removeNote(notePosition);
+            }
+        } else {
+            saveNote();
+        }
+    }
+
+    private void saveNote() {
+        noteInfo.setCourse((CourseInfo) spinnerCourses.getSelectedItem());
+        noteInfo.setText(textNoteText.getText().toString());
+        noteInfo.setTitle(textNoteTitle.getText().toString());
     }
 
     private void sendEmail() {
